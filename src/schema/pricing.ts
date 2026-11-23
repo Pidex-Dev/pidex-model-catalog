@@ -2,12 +2,15 @@ import { z } from 'zod'
 
 export const PricingPriceSchema = z.number().finite().min(0).max(Number.MAX_SAFE_INTEGER).nullable()
 
+export const CacheWriteByTtlSchema = z.record(z.string().min(1), PricingPriceSchema)
+
 export const PricingPriceTierSchema = z.object({
   inputTokensAbove: z.number().int().min(0),
   input: PricingPriceSchema,
   output: PricingPriceSchema,
   cacheRead: PricingPriceSchema,
   cacheWrite: PricingPriceSchema,
+  cacheWriteByTtl: CacheWriteByTtlSchema.optional(),
 })
 
 export const UnitPricesSchema = z.object({
@@ -15,6 +18,7 @@ export const UnitPricesSchema = z.object({
   output: PricingPriceSchema,
   cacheRead: PricingPriceSchema,
   cacheWrite: PricingPriceSchema,
+  cacheWriteByTtl: CacheWriteByTtlSchema.optional(),
   tiers: z.array(PricingPriceTierSchema).optional(),
 })
 
@@ -51,6 +55,7 @@ export const PricingSchema = z.object({
 })
 
 export type PricingPrice = z.infer<typeof PricingPriceSchema>
+export type CacheWriteByTtl = z.infer<typeof CacheWriteByTtlSchema>
 export type PricingPriceTier = z.infer<typeof PricingPriceTierSchema>
 export type UnitPrices = z.infer<typeof UnitPricesSchema>
 export type Pricing = z.infer<typeof PricingSchema>
@@ -58,6 +63,15 @@ export type Pricing = z.infer<typeof PricingSchema>
 export class PricingValidationError extends Error {}
 
 const minutes = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3))
+
+function normalizeCacheWriteByTtl(
+  map: CacheWriteByTtl | undefined,
+): CacheWriteByTtl | undefined {
+  if (!map) return undefined
+  const entries = Object.entries(map)
+  if (!entries.length) return undefined
+  return Object.fromEntries(entries)
+}
 
 function normalizeTiers(
   tiers: readonly PricingPriceTier[] | undefined,
@@ -71,7 +85,19 @@ function normalizeTiers(
     }
     seen.add(tier.inputTokensAbove)
   }
-  return [...tiers].sort((a, b) => a.inputTokensAbove - b.inputTokensAbove)
+  return [...tiers]
+    .sort((a, b) => a.inputTokensAbove - b.inputTokensAbove)
+    .map((tier) => {
+      const cacheWriteByTtl = normalizeCacheWriteByTtl(tier.cacheWriteByTtl)
+      return {
+        inputTokensAbove: tier.inputTokensAbove,
+        input: tier.input,
+        output: tier.output,
+        cacheRead: tier.cacheRead,
+        cacheWrite: tier.cacheWrite,
+        ...(cacheWriteByTtl ? { cacheWriteByTtl } : {}),
+      }
+    })
 }
 
 /** Validates time zone, date overrides, week-grid busy/idle conflicts and tier uniqueness. */
@@ -157,6 +183,9 @@ export function validatePricing(value: unknown, label = 'pricing'): Pricing {
     }
   })
 
+  const idleCacheWriteByTtl = normalizeCacheWriteByTtl(pricing.idle.cacheWriteByTtl)
+  const busyCacheWriteByTtl = normalizeCacheWriteByTtl(pricing.busy.cacheWriteByTtl)
+
   return {
     ...pricing,
     idle: {
@@ -164,6 +193,7 @@ export function validatePricing(value: unknown, label = 'pricing'): Pricing {
       output: pricing.idle.output,
       cacheRead: pricing.idle.cacheRead,
       cacheWrite: pricing.idle.cacheWrite,
+      ...(idleCacheWriteByTtl ? { cacheWriteByTtl: idleCacheWriteByTtl } : {}),
       ...(idleTiers ? { tiers: idleTiers } : {}),
     },
     busy: {
@@ -171,6 +201,7 @@ export function validatePricing(value: unknown, label = 'pricing'): Pricing {
       output: pricing.busy.output,
       cacheRead: pricing.busy.cacheRead,
       cacheWrite: pricing.busy.cacheWrite,
+      ...(busyCacheWriteByTtl ? { cacheWriteByTtl: busyCacheWriteByTtl } : {}),
       ...(busyTiers ? { tiers: busyTiers } : {}),
     },
   }

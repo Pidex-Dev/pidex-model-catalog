@@ -10,20 +10,36 @@ const roundPrice = (value: PricingPrice, factor: number): PricingPrice => {
   return Number((value * factor).toPrecision(10))
 }
 
-const scaleTier = (tier: PricingPriceTier, factor: number): PricingPriceTier => ({
-  inputTokensAbove: tier.inputTokensAbove,
-  input: roundPrice(tier.input, factor),
-  output: roundPrice(tier.output, factor),
-  cacheRead: roundPrice(tier.cacheRead, factor),
-  cacheWrite: roundPrice(tier.cacheWrite, factor),
-})
+const scaleCacheWriteByTtl = (
+  map: UnitPrices['cacheWriteByTtl'],
+  factor: number,
+): UnitPrices['cacheWriteByTtl'] => {
+  if (!map) return undefined
+  const entries = Object.entries(map)
+  if (!entries.length) return undefined
+  return Object.fromEntries(entries.map(([ttl, price]) => [ttl, roundPrice(price, factor)]))
+}
+
+const scaleTier = (tier: PricingPriceTier, factor: number): PricingPriceTier => {
+  const cacheWriteByTtl = scaleCacheWriteByTtl(tier.cacheWriteByTtl, factor)
+  return {
+    inputTokensAbove: tier.inputTokensAbove,
+    input: roundPrice(tier.input, factor),
+    output: roundPrice(tier.output, factor),
+    cacheRead: roundPrice(tier.cacheRead, factor),
+    cacheWrite: roundPrice(tier.cacheWrite, factor),
+    ...(cacheWriteByTtl ? { cacheWriteByTtl } : {}),
+  }
+}
 
 export function scaleUnitPrices(prices: UnitPrices, factor: number): UnitPrices {
+  const cacheWriteByTtl = scaleCacheWriteByTtl(prices.cacheWriteByTtl, factor)
   return {
     input: roundPrice(prices.input, factor),
     output: roundPrice(prices.output, factor),
     cacheRead: roundPrice(prices.cacheRead, factor),
     cacheWrite: roundPrice(prices.cacheWrite, factor),
+    ...(cacheWriteByTtl ? { cacheWriteByTtl } : {}),
     ...(prices.tiers?.length
       ? { tiers: prices.tiers.map((tier) => scaleTier(tier, factor)) }
       : {}),

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PricingSchema, type Pricing } from './pricing'
+import { PricingSchema, type Pricing, type UnitPrices } from './pricing'
 
 export const ReasoningOptionSchema = z.object({
   type: z.enum(['toggle', 'effort', 'budget_tokens']),
@@ -192,6 +192,7 @@ export type CatalogDocument = z.infer<typeof CatalogDocumentSchema>
 
 export type ModelFactsPatch = Omit<CatalogModelFacts, 'pricing'> & {
   readonly pricing?: Pricing
+  readonly busyPricing?: UnitPrices
 }
 
 export interface ProviderOverlay {
@@ -202,6 +203,11 @@ export interface ProviderOverlay {
   readonly protocolEndpoints?: Partial<Record<ProtocolEndpointApi, string>>
   readonly env?: readonly string[]
   readonly npm?: string
+  readonly providerPricingRule?: {
+    readonly kind: 'off-peak-factor'
+    readonly schedule: Parameters<typeof import('../schedules/helpers').withOffPeakSchedule>[0]
+    readonly idleFactor: number
+  }
   readonly models?: Readonly<Record<string, ModelFactsPatch>>
 }
 
