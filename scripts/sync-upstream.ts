@@ -25,6 +25,13 @@ const PI_MODEL_FIELDS = [
   'type',
 ] as const
 
+/**
+ * Models no longer offered by MiniMax official API.
+ * Official LLM pricing (platform.minimax.io / platform.minimax.cn docs/pricing/overview)
+ * only lists MiniMax-M3.1-Flash and MiniMax-M3.
+ */
+const MINIMAX_RETIRED_MODELS = new Set(['MiniMax-M2.7', 'MiniMax-M2.7-highspeed'])
+
 const MODELS_DEV_FIELDS = [
   'id',
   'name',
@@ -97,6 +104,13 @@ async function main() {
     const modelsOut: Record<string, unknown> = {}
     for (const [modelId, modelObj] of Object.entries(modelsObj as Record<string, unknown>)) {
       if (!modelObj || typeof modelObj !== 'object' || Array.isArray(modelObj)) continue
+      // MiniMax official API no longer serves retired M2.7 series models.
+      if (
+        (providerId === 'minimax' || providerId === 'minimax-cn') &&
+        MINIMAX_RETIRED_MODELS.has(modelId)
+      ) {
+        continue
+      }
       modelsOut[modelId] = pickFields(modelObj as Record<string, unknown>, PI_MODEL_FIELDS)
     }
     piTrimmed[providerId] = modelsOut

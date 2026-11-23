@@ -5,8 +5,11 @@ import { FLAT_CNY, FLAT_USD } from '../../schedules/templates'
 /**
  * MiniMax official pricing & thinking modes (CN & Global).
  * Sources:
- * - https://platform.minimaxi.com (minimax-cn, CNY)
- * - https://platform.minimax.io (minimax, USD)
+ * - https://platform.minimax.cn/docs/pricing/overview (minimax-cn, CNY)
+ * - https://platform.minimax.io/docs/pricing/overview (minimax, USD)
+ *
+ * Official LLM pricing only lists MiniMax-M3.1-Flash and MiniMax-M3;
+ * the retired M2.7 series is filtered out in sync-upstream.ts.
  */
 export const minimaxCnOverlay: ProviderOverlay = {
   providerId: 'minimax-cn',
@@ -42,26 +45,6 @@ export const minimaxCnOverlay: ProviderOverlay = {
             cacheWrite: 0,
           },
         ],
-      }),
-    },
-    'MiniMax-M2.7': {
-      reasoning: true,
-      reasoning_options: [{ type: 'toggle' }],
-      pricing: withFlatPricing(FLAT_CNY, {
-        input: 2.1,
-        output: 8.4,
-        cacheRead: 0.42,
-        cacheWrite: 2.625,
-      }),
-    },
-    'MiniMax-M2.7-highspeed': {
-      reasoning: true,
-      reasoning_options: [{ type: 'toggle' }],
-      pricing: withFlatPricing(FLAT_CNY, {
-        input: 4.2,
-        output: 16.8,
-        cacheRead: 0.42,
-        cacheWrite: 2.625,
       }),
     },
   },
@@ -101,26 +84,6 @@ export const minimaxOverlay: ProviderOverlay = {
             cacheWrite: 0,
           },
         ],
-      }),
-    },
-    'MiniMax-M2.7': {
-      reasoning: true,
-      reasoning_options: [{ type: 'toggle' }],
-      pricing: withFlatPricing(FLAT_USD, {
-        input: 0.3,
-        output: 1.2,
-        cacheRead: 0.06,
-        cacheWrite: 0.375,
-      }),
-    },
-    'MiniMax-M2.7-highspeed': {
-      reasoning: true,
-      reasoning_options: [{ type: 'toggle' }],
-      pricing: withFlatPricing(FLAT_USD, {
-        input: 0.6,
-        output: 2.4,
-        cacheRead: 0.06,
-        cacheWrite: 0.375,
       }),
     },
   },
