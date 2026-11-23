@@ -13,6 +13,10 @@ import { FLAT_CNY, FLAT_USD } from '../../schedules/templates'
  */
 export const minimaxCnOverlay: ProviderOverlay = {
   providerId: 'minimax-cn',
+  protocolEndpoints: {
+    'anthropic-messages': 'https://api.minimaxi.com/anthropic',
+    'openai-completions': 'https://api.minimax.cn/v1',
+  },
   models: {
     'MiniMax-M3.1-Flash': {
       pi_api: 'anthropic-messages',
@@ -52,6 +56,10 @@ export const minimaxCnOverlay: ProviderOverlay = {
 
 export const minimaxOverlay: ProviderOverlay = {
   providerId: 'minimax',
+  protocolEndpoints: {
+    'anthropic-messages': 'https://api.minimax.io/anthropic',
+    'openai-completions': 'https://api.minimax.io/v1',
+  },
   models: {
     'MiniMax-M3.1-Flash': {
       pi_api: 'anthropic-messages',

@@ -10,6 +10,11 @@ import { DEEPSEEK_OFF_PEAK_CN } from '../../schedules/templates'
  */
 export const deepseekOverlay: ProviderOverlay = {
   providerId: 'deepseek',
+  protocolEndpoints: {
+    'openai-completions': 'https://api.deepseek.com',
+    'openai-responses': 'https://api.deepseek.com',
+    'anthropic-messages': 'https://api.deepseek.com/anthropic',
+  },
   models: {
     'deepseek-flash': {
       reasoning_options: [

@@ -26,7 +26,10 @@ export const qianwenCnOverlay: ProviderOverlay = {
   providerId: 'qianwen-cn',
   name: 'Qwen AI (China)',
   api: 'https://maas.qianwenaiapi.com/compatible-mode/v1',
-  endpoints: ['https://maas.qianwenaiapi.com/apps/anthropic'],
+  protocolEndpoints: {
+    'openai-completions': 'https://maas.qianwenaiapi.com/compatible-mode/v1',
+    'anthropic-messages': 'https://maas.qianwenaiapi.com/apps/anthropic',
+  },
   env: ['DASHSCOPE_API_KEY'],
   npm: '@ai-sdk/openai-compatible',
   models: {
@@ -283,16 +286,26 @@ export const qianwenCnOverlay: ProviderOverlay = {
  * and per-model Credit tariffs are not published as a static formula. Keeping cash
  * cost at 0 on Token Plan endpoints isolates subscription usage from pay-as-you-go
  * billing.
+ *
+ * Live model list source: DashScope `listTokenPlanModels` (zelda api) response
+ * captured 2026-11-23, text-generation models (capabilities include TG). Entries
+ * absent from that response were removed. `auto` and `decision-model-preview` are
+ * Token-Plan-only router/domain models without a models.dev canonical entry.
  */
 export const qwenTokenPlanCnOverlay: ProviderOverlay = {
   providerId: 'qwen-token-plan-cn',
   name: 'Qwen AI Token Plan (China)',
   api: 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
-  endpoints: [
-    'https://token-plan.maas.qianwenaiapi.com/apps/anthropic',
-    'https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1',
-  ],
+  protocolEndpoints: {
+    'openai-completions': 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
+    'anthropic-messages': 'https://token-plan.maas.qianwenaiapi.com/apps/anthropic',
+  },
+  endpoints: ['https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1'],
   models: {
+    'auto': {
+      name: 'Auto',
+      cost: ZERO_CASH_COST,
+    },
     'qwen4-max': {
       canonical_model_id: 'alibaba/qwen4-max',
       cost: ZERO_CASH_COST,
@@ -303,30 +316,56 @@ export const qwenTokenPlanCnOverlay: ProviderOverlay = {
       aliases: ['qwen4.0-max-preview'],
       cost: ZERO_CASH_COST,
     },
+    'qwen3.8-max': {
+      canonical_model_id: 'alibaba/qwen3.8-max',
+      cost: ZERO_CASH_COST,
+    },
+    'qwen3.8-flash': {
+      canonical_model_id: 'alibaba/qwen3.8-flash',
+      cost: ZERO_CASH_COST,
+    },
+    'qwen3.7-plus': {
+      canonical_model_id: 'alibaba/qwen3.7-plus',
+      cost: ZERO_CASH_COST,
+    },
+    'qwen3.7-max': {
+      canonical_model_id: 'alibaba/qwen3.7-max',
+      cost: ZERO_CASH_COST,
+    },
+    'qwen3.6-flash': {
+      canonical_model_id: 'alibaba/qwen3.6-flash',
+      cost: ZERO_CASH_COST,
+    },
+    'deepseek-v4.1-flash': {
+      canonical_model_id: 'deepseek/deepseek-v4.1-flash',
+      cost: ZERO_CASH_COST,
+    },
     'deepseek-v4.1-flash-1017': {
       canonical_model_id: 'deepseek/deepseek-v4.1-flash-1017',
+      cost: ZERO_CASH_COST,
+    },
+    'deepseek-v4-pro': {
+      canonical_model_id: 'deepseek/deepseek-v4-pro',
+      cost: ZERO_CASH_COST,
+    },
+    'deepseek-v4-pro-0813': {
+      canonical_model_id: 'deepseek/deepseek-v4-pro-0813',
+      cost: ZERO_CASH_COST,
+    },
+    'deepseek-v4-flash-0731': {
+      canonical_model_id: 'deepseek/deepseek-v4-flash-0731',
       cost: ZERO_CASH_COST,
     },
     'ZHIPU/GLM-5.3': {
       canonical_model_id: 'zhipuai/glm-5.3',
       cost: ZERO_CASH_COST,
     },
-    'ZHIPU/GLM-5.3-Flash': {
-      canonical_model_id: 'zhipuai/glm-5.3-flash',
+    'ZHIPU/GLM-5.2': {
+      canonical_model_id: 'zhipuai/glm-5.2',
       cost: ZERO_CASH_COST,
     },
-    'ZHIPU/GLM-5.3-FlashX': {
-      canonical_model_id: 'zhipuai/glm-5.3-flash',
-      name: 'GLM-5.3-FlashX',
-      cost: ZERO_CASH_COST,
-    },
-    'kimi/kimi-k3.1-pro': {
-      canonical_model_id: 'moonshotai/kimi-k3.1-pro',
-      cost: ZERO_CASH_COST,
-    },
-    'kimi/kimi-k3.1-pro-highspeed': {
-      canonical_model_id: 'moonshotai/kimi-k3.1-pro',
-      name: 'Kimi K3.1 Pro Highspeed',
+    'decision-model-preview': {
+      name: 'Decision Model Preview',
       cost: ZERO_CASH_COST,
     },
   },
