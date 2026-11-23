@@ -138,6 +138,10 @@ describe('pidex-model-catalog', () => {
     expect(qianwenCn?.marketVisible).toBe(false)
     expect(qianwenCn?.api).toBe('https://maas.qianwenaiapi.com/compatible-mode/v1')
     expect(qianwenCn?.endpoints).toEqual(['https://maas.qianwenaiapi.com/apps/anthropic'])
+    expect(qianwenCn?.protocolEndpoints).toEqual({
+      'openai-completions': 'https://maas.qianwenaiapi.com/compatible-mode/v1',
+      'anthropic-messages': 'https://maas.qianwenaiapi.com/apps/anthropic',
+    })
     expect(qianwenCn?.models['deepseek-v4.1-flash']?.pricing).toMatchObject({
       currency: 'CNY',
       timeZone: 'Asia/Shanghai',
@@ -171,6 +175,25 @@ describe('pidex-model-catalog', () => {
       'https://token-plan.maas.qianwenaiapi.com/apps/anthropic',
       'https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1',
     ])
+    expect(tokenPlanCn?.protocolEndpoints).toEqual({
+      'openai-completions': 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
+      'anthropic-messages': 'https://token-plan.maas.qianwenaiapi.com/apps/anthropic',
+    })
+    expect(doc.providers.deepseek?.protocolEndpoints).toEqual({
+      'openai-completions': 'https://api.deepseek.com',
+      'openai-responses': 'https://api.deepseek.com',
+      'anthropic-messages': 'https://api.deepseek.com/anthropic',
+    })
+    expect(doc.providers['minimax-cn']?.protocolEndpoints).toEqual({
+      'anthropic-messages': 'https://api.minimaxi.com/anthropic',
+      'openai-completions': 'https://api.minimax.cn/v1',
+    })
+    expect(doc.providers.openai?.protocolEndpoints?.['openai-completions']).toBe(
+      'https://api.openai.com/v1',
+    )
+    expect(doc.providers.google?.protocolEndpoints?.['openai-completions']).toBe(
+      'https://generativelanguage.googleapis.com/v1beta/openai',
+    )
     expect(tokenPlanCn?.models['deepseek-v4.1-flash-1017']?.pricing).toBeUndefined()
     expect(tokenPlanCn?.models['deepseek-v4.1-flash-1017']?.cost).toEqual({
       input: 0,
