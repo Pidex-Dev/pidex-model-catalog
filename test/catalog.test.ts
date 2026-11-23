@@ -4,7 +4,7 @@ import { validateCatalogDocument } from '../scripts/validate'
 import { validateOptionSpecs } from '../src/schema/cel-check'
 import { validatePricing } from '../src/schema/pricing'
 import { withHalfPriceIdle, withOffPeakSchedule } from '../src/schedules/helpers'
-import { DEEPSEEK_OFF_PEAK_CN } from '../src/schedules/templates'
+import { DEEPSEEK_OFF_PEAK_CN, QIANWEN_OFF_PEAK_CN } from '../src/schedules/templates'
 import { EXTRA_RECOMMENDATION_PROVIDERS, MARKET_VISIBLE_PROVIDERS } from '../src/allowlist'
 
 describe('pidex-model-catalog', () => {
@@ -133,6 +133,51 @@ describe('pidex-model-catalog', () => {
     const minimaxGlobalFlash = doc.providers.minimax?.models['MiniMax-M3.1-Flash']
     expect(minimaxGlobalFlash?.pricing?.currency).toBe('USD')
     expect(minimaxGlobalFlash?.pricing?.idle.input).toBe(0.15)
+
+    const qianwenCn = doc.providers['qianwen-cn']
+    expect(qianwenCn?.marketVisible).toBe(false)
+    expect(qianwenCn?.api).toBe('https://maas.qianwenaiapi.com/compatible-mode/v1')
+    expect(qianwenCn?.endpoints).toEqual(['https://maas.qianwenaiapi.com/apps/anthropic'])
+    expect(qianwenCn?.models['deepseek-v4.1-flash']?.pricing).toMatchObject({
+      currency: 'CNY',
+      timeZone: 'Asia/Shanghai',
+      defaultPeriod: 'idle',
+      idle: { input: 1, output: 4, cacheRead: 0.02, cacheWrite: null },
+      busy: { input: 2, output: 8, cacheRead: 0.04, cacheWrite: null },
+      rules: QIANWEN_OFF_PEAK_CN.rules,
+    })
+    expect(qianwenCn?.models['deepseek-v4-pro-0813']?.pricing).toMatchObject({
+      idle: { input: 4.5, output: 13.5, cacheRead: 0.45, cacheWrite: null },
+      busy: { input: 9, output: 27, cacheRead: 0.9, cacheWrite: null },
+    })
+    expect(qianwenCn?.models['qwen3.7-plus']?.pricing?.idle).toEqual({
+      input: 2,
+      output: 8,
+      cacheRead: 0.4,
+      cacheWrite: null,
+      tiers: [{ inputTokensAbove: 256_000, input: 6, output: 24, cacheRead: 1.2, cacheWrite: null }],
+    })
+    expect(qianwenCn?.models['qwen3.7-flash']?.pricing?.idle.tiers).toEqual([
+      { inputTokensAbove: 32_000, input: 0.6, output: 2.4, cacheRead: 0.12, cacheWrite: null },
+      { inputTokensAbove: 256_000, input: 1.2, output: 4.8, cacheRead: 0.24, cacheWrite: null },
+    ])
+    expect(qianwenCn?.models['qwen3.7-text-embedding-flash']?.type).toBe('embedding')
+    expect(qianwenCn?.models['qwen3.7-text-rerank']?.type).toBe('rerank')
+
+    const tokenPlanCn = doc.providers['qwen-token-plan-cn']
+    expect(tokenPlanCn?.marketVisible).toBe(false)
+    expect(tokenPlanCn?.api).toBe('https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1')
+    expect(tokenPlanCn?.endpoints).toEqual([
+      'https://token-plan.maas.qianwenaiapi.com/apps/anthropic',
+      'https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1',
+    ])
+    expect(tokenPlanCn?.models['deepseek-v4.1-flash-1017']?.pricing).toBeUndefined()
+    expect(tokenPlanCn?.models['deepseek-v4.1-flash-1017']?.cost).toEqual({
+      input: 0,
+      output: 0,
+      cache_read: 0,
+      cache_write: 0,
+    })
 
     for (const extra of EXTRA_RECOMMENDATION_PROVIDERS) {
       if (doc.providers[extra]) {

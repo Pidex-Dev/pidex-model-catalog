@@ -23,6 +23,28 @@ export const DEEPSEEK_OFF_PEAK_CN = {
   dateOverrides: [],
 } as const
 
+/**
+ * Qwen AI Platform (千问AI平台) daily peak/off-peak billing schedule (Asia/Shanghai).
+ * Source: https://platform.qianwenai.com/pricing/api
+ *
+ * Peak (busy): every day 08:00-22:00 (no weekend or public holiday exception).
+ * Off-peak (idle): every day 22:00-08:00 (next day).
+ */
+export const QIANWEN_OFF_PEAK_CN = {
+  currency: 'CNY',
+  timeZone: 'Asia/Shanghai',
+  defaultPeriod: 'idle',
+  rules: [
+    {
+      period: 'busy',
+      weekdays: [0, 1, 2, 3, 4, 5, 6],
+      holiday: 'any',
+      intervals: [{ start: '08:00', end: '22:00' }],
+    },
+  ],
+  dateOverrides: [],
+} as const
+
 /** Flat CNY pricing schedule without peak/off-peak time windows. */
 export const FLAT_CNY = {
   currency: 'CNY',
