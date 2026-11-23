@@ -344,9 +344,13 @@ export async function buildCatalog(): Promise<CatalogDocument> {
       const current = modelsOut[modelId] ?? (devSeed ? sanitizeFacts(devSeed) : undefined)
       modelsOut[modelId] = current ? deepMergeFacts(current, patch) : sanitizeFacts(patch)
     }
+    const mergedEndpoints = [
+      ...new Set([...(overlay.endpoints ?? []), ...(existing?.endpoints ?? [])]),
+    ]
     providers[overlay.providerId] = {
       name: overlay.name ?? existing?.name ?? overlay.providerId,
       ...(overlay.api ?? existing?.api ? { api: overlay.api ?? existing?.api } : {}),
+      ...(mergedEndpoints.length ? { endpoints: mergedEndpoints } : {}),
       ...(overlay.env ?? existing?.env ? { env: [...(overlay.env ?? existing?.env ?? [])] } : {}),
       ...(overlay.npm ?? existing?.npm ? { npm: overlay.npm ?? existing?.npm } : {}),
       marketVisible: existing?.marketVisible ?? marketVisibleSet.has(overlay.providerId),

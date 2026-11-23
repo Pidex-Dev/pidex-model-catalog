@@ -144,6 +144,7 @@ export const CatalogModelFactsSchema = z
 export const CatalogProviderSchema = z.object({
   name: z.string().optional(),
   api: z.string().optional(),
+  endpoints: z.array(z.string().min(1)).optional(),
   env: z.array(z.string()).optional(),
   npm: z.string().optional(),
   marketVisible: z.boolean(),
@@ -173,6 +174,7 @@ export interface ProviderOverlay {
   readonly providerId: string
   readonly name?: string
   readonly api?: string
+  readonly endpoints?: readonly string[]
   readonly env?: readonly string[]
   readonly npm?: string
   readonly models: Readonly<Record<string, ModelFactsPatch>>
