@@ -25,6 +25,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile || bun install
 
+      - name: Reuse the timestamps of unchanged v2 files
+        run: |
+          mkdir -p dist/v2
+          for file in providers models; do
+            curl --fail --silent --show-error --max-time 15 "https://models.codepilotx.top/v2/$file.json" --output "dist/v2/$file.json" || true
+          done
+
       - name: Build, validate & test
         run: |
           bun run build
