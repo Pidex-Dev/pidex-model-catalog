@@ -1,0 +1,50 @@
+name: Sync Upstream Model Catalogs
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile || bun install
+
+      - name: Sync pi.dev & models.dev
+        run: bun run sync
+
+      - name: Build & validate catalog
+        run: |
+          bun run build
+          bun run validate
+          bun run typecheck
+          bun test
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'chore(upstream): sync pi.dev and models.dev snapshots'
+          branch: chore/sync-upstream-catalog
+          delete-branch: true
+          title: 'chore(upstream): sync pi.dev and models.dev snapshots'
+          body: |
+            Automated daily upstream sync from `pi.dev/api/models` and `models.dev/catalog.json`.
+
+            - Validated schema, restricted CEL option maps, pricing schedules, and provider allowlist.
+            - Review the upstream diff before merging to deploy to Cloudflare Pages (`models.codepilotx.top`).
+          add-paths: |
+            src/upstream/

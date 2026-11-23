@@ -1,0 +1,52 @@
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { MARKET_VISIBLE_PROVIDERS } from '../src/allowlist'
+import { CatalogDocumentSchema, type CatalogDocument } from '../src/schema/catalog'
+import { validateOptionSpecs } from '../src/schema/cel-check'
+import { validatePricing } from '../src/schema/pricing'
+
+const ROOT = join(import.meta.dir, '..')
+const CATALOG_PATH = join(ROOT, 'dist', 'v1', 'catalog.json')
+const PI_PATH = join(ROOT, 'src', 'upstream', 'pi-models.json')
+
+export function validateCatalogDocument(document: CatalogDocument, piProviderIds: ReadonlySet<string>): void {
+  const parsed = CatalogDocumentSchema.safeParse(document)
+  if (!parsed.success) {
+    throw new Error(`Catalog schema validation failed:\n${parsed.error.message}`)
+  }
+
+  for (const [id, model] of Object.entries(parsed.data.models)) {
+    if (model.pricing) validatePricing(model.pricing, `models.${id}`)
+    if (model.option_specs) validateOptionSpecs(model.option_specs, `models.${id}`)
+  }
+
+  const allowedMarket = new Set<string>(MARKET_VISIBLE_PROVIDERS)
+  for (const providerId of allowedMarket) {
+    if (!parsed.data.providers[providerId]?.marketVisible) {
+      throw new Error(`Expected market-visible provider "${providerId}" is missing or hidden`)
+    }
+  }
+
+  for (const [providerId, provider] of Object.entries(parsed.data.providers)) {
+    if (provider.marketVisible && (!piProviderIds.has(providerId) || !allowedMarket.has(providerId))) {
+      throw new Error(`Market-visible provider "${providerId}" is not in curated market allowlist`)
+    }
+    for (const [modelId, model] of Object.entries(provider.models)) {
+      if (model.pricing) validatePricing(model.pricing, `providers.${providerId}.models.${modelId}`)
+      if (model.option_specs) validateOptionSpecs(model.option_specs, `providers.${providerId}.models.${modelId}`)
+    }
+  }
+}
+
+async function main() {
+  const [catalogRaw, piRaw] = await Promise.all([
+    readFile(CATALOG_PATH, 'utf8').then((text) => JSON.parse(text) as CatalogDocument),
+    readFile(PI_PATH, 'utf8').then((text) => JSON.parse(text) as Record<string, unknown>),
+  ])
+  validateCatalogDocument(catalogRaw, new Set(Object.keys(piRaw)))
+  console.log('Catalog validation passed.')
+}
+
+if (import.meta.main) {
+  await main()
+}
