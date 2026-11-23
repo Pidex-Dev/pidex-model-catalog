@@ -141,10 +141,33 @@ export const CatalogModelFactsSchema = z
   })
   .strict()
 
+export const PROTOCOL_ENDPOINT_APIS = [
+  'openai-completions',
+  'openai-responses',
+  'anthropic-messages',
+  'google-generative-ai',
+  'openai-embeddings',
+  'jina-rerank',
+] as const
+
+export type ProtocolEndpointApi = (typeof PROTOCOL_ENDPOINT_APIS)[number]
+
+export const ProtocolEndpointsSchema = z
+  .object({
+    'openai-completions': z.string().url().optional(),
+    'openai-responses': z.string().url().optional(),
+    'anthropic-messages': z.string().url().optional(),
+    'google-generative-ai': z.string().url().optional(),
+    'openai-embeddings': z.string().url().optional(),
+    'jina-rerank': z.string().url().optional(),
+  })
+  .strict()
+
 export const CatalogProviderSchema = z.object({
   name: z.string().optional(),
   api: z.string().optional(),
   endpoints: z.array(z.string().min(1)).optional(),
+  protocolEndpoints: ProtocolEndpointsSchema.optional(),
   env: z.array(z.string()).optional(),
   npm: z.string().optional(),
   marketVisible: z.boolean(),
@@ -163,6 +186,7 @@ export const CatalogDocumentSchema = z.object({
 export type ReasoningOption = z.infer<typeof ReasoningOptionSchema>
 export type OptionSpecs = z.infer<typeof OptionSpecsSchema>
 export type CatalogModelFacts = z.infer<typeof CatalogModelFactsSchema>
+export type ProtocolEndpoints = z.infer<typeof ProtocolEndpointsSchema>
 export type CatalogProvider = z.infer<typeof CatalogProviderSchema>
 export type CatalogDocument = z.infer<typeof CatalogDocumentSchema>
 
@@ -175,9 +199,10 @@ export interface ProviderOverlay {
   readonly name?: string
   readonly api?: string
   readonly endpoints?: readonly string[]
+  readonly protocolEndpoints?: Partial<Record<ProtocolEndpointApi, string>>
   readonly env?: readonly string[]
   readonly npm?: string
-  readonly models: Readonly<Record<string, ModelFactsPatch>>
+  readonly models?: Readonly<Record<string, ModelFactsPatch>>
 }
 
 export type ModelOverlayMap = Readonly<Record<string, ModelFactsPatch>>

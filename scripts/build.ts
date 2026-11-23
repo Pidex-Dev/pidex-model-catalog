@@ -7,11 +7,14 @@ import {
   PI_VERSION,
 } from '../src/allowlist'
 import { MODEL_OVERLAYS, PROVIDER_OVERLAYS } from '../src/overlays'
-import type {
-  CatalogDocument,
-  CatalogModelFacts,
-  CatalogProvider,
-  ModelFactsPatch,
+import {
+  PROTOCOL_ENDPOINT_APIS,
+  type CatalogDocument,
+  type CatalogModelFacts,
+  type CatalogProvider,
+  type ModelFactsPatch,
+  type ProtocolEndpointApi,
+  type ProtocolEndpoints,
 } from '../src/schema/catalog'
 
 const ROOT = join(import.meta.dir, '..')
@@ -295,19 +298,28 @@ export async function buildCatalog(): Promise<CatalogDocument> {
   const providers: Record<string, CatalogProvider> = {}
   const marketVisibleSet = new Set<string>(MARKET_VISIBLE_PROVIDERS)
 
+  const protocolEndpointApiSet = new Set<string>(PROTOCOL_ENDPOINT_APIS)
+  const isProtocolEndpointApi = (value: string | undefined): value is ProtocolEndpointApi =>
+    typeof value === 'string' && protocolEndpointApiSet.has(value)
+
   // Layer 1 + 2a: Pi base providers (only MARKET_VISIBLE_PROVIDERS are marketVisible: true), enriched by models.dev.
   for (const [providerId, piModels] of Object.entries(piRaw)) {
     const devProvider = modelsDevRaw.providers?.[providerId]
     const devModels = devProvider?.models ?? {}
     const modelsOut: Record<string, CatalogModelFacts> = {}
+    const protocolEndpoints: ProtocolEndpoints = {}
     for (const [modelId, piModel] of Object.entries(piModels)) {
       const piFacts = piModelToFacts(piModel)
       const devMatch = devModels[modelId] ?? devModels[modelId.toLowerCase()]
       modelsOut[modelId] = enrichPiWithModelsDev(piFacts, devMatch)
+      if (isProtocolEndpointApi(piModel.api) && piModel.baseUrl && !protocolEndpoints[piModel.api]) {
+        protocolEndpoints[piModel.api] = piModel.baseUrl
+      }
     }
     providers[providerId] = {
       name: devProvider?.name ?? providerId,
       ...(devProvider?.api ? { api: devProvider.api } : {}),
+      ...(Object.keys(protocolEndpoints).length ? { protocolEndpoints } : {}),
       ...(devProvider?.env ? { env: devProvider.env } : {}),
       ...(devProvider?.npm ? { npm: devProvider.npm } : {}),
       marketVisible: marketVisibleSet.has(providerId),
@@ -339,18 +351,33 @@ export async function buildCatalog(): Promise<CatalogDocument> {
     const existing = providers[overlay.providerId]
     const devModels = modelsDevRaw.providers?.[overlay.providerId]?.models ?? {}
     const modelsOut: Record<string, CatalogModelFacts> = existing ? { ...existing.models } : {}
-    for (const [modelId, patch] of Object.entries(overlay.models)) {
+    for (const [modelId, patch] of Object.entries(overlay.models ?? {})) {
       const devSeed = devModels[modelId] ?? devModels[modelId.toLowerCase()]
       const current = modelsOut[modelId] ?? (devSeed ? sanitizeFacts(devSeed) : undefined)
       modelsOut[modelId] = current ? deepMergeFacts(current, patch) : sanitizeFacts(patch)
     }
+    const mergedProtocolEndpoints: ProtocolEndpoints = {
+      ...(existing?.protocolEndpoints ?? {}),
+      ...(overlay.protocolEndpoints ?? {}),
+    }
+    const primaryApi = overlay.api ?? existing?.api
+    const protocolEndpointUrls = Object.values(mergedProtocolEndpoints).filter(
+      (url): url is string => typeof url === 'string' && url.length > 0 && url !== primaryApi,
+    )
     const mergedEndpoints = [
-      ...new Set([...(overlay.endpoints ?? []), ...(existing?.endpoints ?? [])]),
+      ...new Set([
+        ...protocolEndpointUrls,
+        ...(overlay.endpoints ?? []),
+        ...(existing?.endpoints ?? []),
+      ]),
     ]
     providers[overlay.providerId] = {
       name: overlay.name ?? existing?.name ?? overlay.providerId,
-      ...(overlay.api ?? existing?.api ? { api: overlay.api ?? existing?.api } : {}),
+      ...(primaryApi ? { api: primaryApi } : {}),
       ...(mergedEndpoints.length ? { endpoints: mergedEndpoints } : {}),
+      ...(Object.keys(mergedProtocolEndpoints).length
+        ? { protocolEndpoints: mergedProtocolEndpoints }
+        : {}),
       ...(overlay.env ?? existing?.env ? { env: [...(overlay.env ?? existing?.env ?? [])] } : {}),
       ...(overlay.npm ?? existing?.npm ? { npm: overlay.npm ?? existing?.npm } : {}),
       marketVisible: existing?.marketVisible ?? marketVisibleSet.has(overlay.providerId),
