@@ -4,6 +4,7 @@ import { MARKET_VISIBLE_PROVIDERS } from '../src/allowlist'
 import { CatalogDocumentSchema, type CatalogDocument } from '../src/schema/catalog'
 import { validateOptionSpecs } from '../src/schema/cel-check'
 import { validatePricing } from '../src/schema/pricing'
+import { validateCatalogV2 } from './validate-v2'
 
 const ROOT = join(import.meta.dir, '..')
 const CATALOG_PATH = join(ROOT, 'dist', 'v1', 'catalog.json')
@@ -44,7 +45,8 @@ async function main() {
     readFile(PI_PATH, 'utf8').then((text) => JSON.parse(text) as Record<string, unknown>),
   ])
   validateCatalogDocument(catalogRaw, new Set(Object.keys(piRaw)))
-  console.log('Catalog validation passed.')
+  await validateCatalogV2(join(ROOT, 'dist', 'v2'))
+  console.log('Catalog v1 and v2 validation passed.')
 }
 
 if (import.meta.main) {

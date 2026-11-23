@@ -7,6 +7,8 @@ import {
   PI_VERSION,
 } from '../src/allowlist'
 import { MODEL_OVERLAYS, PROVIDER_OVERLAYS } from '../src/overlays'
+import { writeCatalogV2 } from './build-v2'
+import { scaleUnitPrices, withOffPeakSchedule } from '../src/schedules/helpers'
 import {
   PROTOCOL_ENDPOINT_APIS,
   type CatalogDocument,
@@ -351,7 +353,15 @@ export async function buildCatalog(): Promise<CatalogDocument> {
     const existing = providers[overlay.providerId]
     const devModels = modelsDevRaw.providers?.[overlay.providerId]?.models ?? {}
     const modelsOut: Record<string, CatalogModelFacts> = existing ? { ...existing.models } : {}
-    for (const [modelId, patch] of Object.entries(overlay.models ?? {})) {
+    for (const [modelId, definition] of Object.entries(overlay.models ?? {})) {
+      const { busyPricing, ...patch } = definition
+      const rule = overlay.providerPricingRule
+      if (busyPricing && rule) {
+        patch.pricing = withOffPeakSchedule(rule.schedule, {
+          busy: busyPricing,
+          idle: scaleUnitPrices(busyPricing, rule.idleFactor),
+        })
+      }
       const devSeed = devModels[modelId] ?? devModels[modelId.toLowerCase()]
       const current = modelsOut[modelId] ?? (devSeed ? sanitizeFacts(devSeed) : undefined)
       modelsOut[modelId] = current ? deepMergeFacts(current, patch) : sanitizeFacts(patch)
@@ -403,6 +413,8 @@ export async function buildCatalog(): Promise<CatalogDocument> {
 
 async function main() {
   const document = await buildCatalog()
+  const upstream = JSON.parse(await readFile(MODELS_DEV_PATH, 'utf8'))
+  await writeCatalogV2(join(DIST_DIR, 'v2'), document, upstream)
   const serialized = JSON.stringify(document)
   const sha256 = createHash('sha256').update(serialized).digest('hex')
   const marketProviderCount = Object.values(document.providers).filter((p) => p.marketVisible).length
@@ -429,7 +441,7 @@ async function main() {
   )
   await writeFile(
     HEADERS_OUT,
-    `/v1/*\n  Cache-Control: public, max-age=300\n  Access-Control-Allow-Origin: *\n`,
+    ['v1', 'v2'].map((version) => `/${version}/*\n  Cache-Control: public, max-age=300\n  Access-Control-Allow-Origin: *\n`).join(''),
     'utf8',
   )
 
