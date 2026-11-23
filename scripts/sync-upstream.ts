@@ -32,6 +32,23 @@ const PI_MODEL_FIELDS = [
  */
 const MINIMAX_RETIRED_MODELS = new Set(['MiniMax-M2.7', 'MiniMax-M2.7-highspeed'])
 
+/**
+ * Qwen Token Plan models absent from the live DashScope `listTokenPlanModels`
+ * response (captured 2026-11-23). Pi upstream still serves stale entries for the
+ * `qwen-token-plan-cn` provider; they must not appear in the catalog.
+ */
+const QWEN_TOKEN_PLAN_RETIRED_MODELS = new Set([
+  'MiniMax-M2.5',
+  'deepseek-v3.2',
+  'deepseek-v4-flash',
+  'glm-5',
+  'glm-5.1',
+  'kimi-k2.5',
+  'kimi-k2.6',
+  'kimi-k2.7-code',
+  'qwen3.6-plus',
+])
+
 const MODELS_DEV_FIELDS = [
   'id',
   'name',
@@ -109,6 +126,10 @@ async function main() {
         (providerId === 'minimax' || providerId === 'minimax-cn') &&
         MINIMAX_RETIRED_MODELS.has(modelId)
       ) {
+        continue
+      }
+      // Qwen Token Plan endpoint no longer serves models missing from the live list.
+      if (providerId === 'qwen-token-plan-cn' && QWEN_TOKEN_PLAN_RETIRED_MODELS.has(modelId)) {
         continue
       }
       modelsOut[modelId] = pickFields(modelObj as Record<string, unknown>, PI_MODEL_FIELDS)
