@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { MARKET_VISIBLE_PROVIDERS } from '../src/allowlist'
+import { PROVIDER_OVERLAYS } from '../src/overlays'
 import { CatalogDocumentSchema, type CatalogDocument } from '../src/schema/catalog'
 import { validateOptionSpecs } from '../src/schema/cel-check'
 import { validatePricing } from '../src/schema/pricing'
@@ -22,6 +23,7 @@ export function validateCatalogDocument(document: CatalogDocument, piProviderIds
   }
 
   const allowedMarket = new Set<string>(MARKET_VISIBLE_PROVIDERS)
+  const overlayProviderIds = new Set<string>(PROVIDER_OVERLAYS.map((overlay) => overlay.providerId))
   for (const providerId of allowedMarket) {
     if (!parsed.data.providers[providerId]?.marketVisible) {
       throw new Error(`Expected market-visible provider "${providerId}" is missing or hidden`)
@@ -29,7 +31,11 @@ export function validateCatalogDocument(document: CatalogDocument, piProviderIds
   }
 
   for (const [providerId, provider] of Object.entries(parsed.data.providers)) {
-    if (provider.marketVisible && (!piProviderIds.has(providerId) || !allowedMarket.has(providerId))) {
+    if (
+      provider.marketVisible &&
+      (!allowedMarket.has(providerId) ||
+        (!piProviderIds.has(providerId) && !overlayProviderIds.has(providerId)))
+    ) {
       throw new Error(`Market-visible provider "${providerId}" is not in curated market allowlist`)
     }
     for (const [modelId, model] of Object.entries(provider.models)) {
