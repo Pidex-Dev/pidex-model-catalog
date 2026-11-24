@@ -1,13 +1,19 @@
 import { describe, expect, test } from 'bun:test'
+import { createHash } from 'node:crypto'
+import { mkdtemp, rmdir, unlink } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { buildCatalog } from '../scripts/build'
-import { buildCatalogV2 } from '../scripts/build-v2'
+import { buildCatalogV2, writeCatalogV2 } from '../scripts/build-v2'
 import { validateCatalogDocument } from '../scripts/validate'
-import { ModelsV2, ProvidersV2 } from '../src/schema/catalog-v2'
+import { validateCatalogV2 } from '../scripts/validate-v2'
+import { ManifestV2, ModelsV2, ProvidersV2, type V2Api } from '../src/schema/catalog-v2'
 import { validateOptionSpecs } from '../src/schema/cel-check'
 import { validatePricing } from '../src/schema/pricing'
 import { scaleUnitPrices, withHalfPriceIdle, withOffPeakSchedule } from '../src/schedules/helpers'
 import { DEEPSEEK_OFF_PEAK_CN, FLAT_USD, QIANWEN_OFF_PEAK_CN } from '../src/schedules/templates'
 import { EXTRA_RECOMMENDATION_PROVIDERS, MARKET_VISIBLE_PROVIDERS } from '../src/allowlist'
+import { providerRules } from '../src/overlays/v2'
 
 describe('pidex-model-catalog', () => {
   test('DeepSeek half-price idle overlay builds valid pricing', () => {
@@ -112,6 +118,9 @@ describe('pidex-model-catalog', () => {
     ])
 
     const minimaxCnM3 = doc.providers['minimax-cn']?.models['MiniMax-M3']
+    expect(minimaxCnM3?.limit).toEqual({ context: 1_000_000, output: 524_288 })
+    expect(minimaxCnM3?.modalities?.input).toEqual(['text', 'image', 'video'])
+    expect(minimaxCnM3?.interleaved).toEqual({ field: 'reasoning_content' })
     expect(minimaxCnM3?.pricing?.currency).toBe('CNY')
     expect(minimaxCnM3?.pricing?.idle.input).toBe(2.1)
     expect(minimaxCnM3?.pricing?.idle.tiers?.[0]).toEqual({
@@ -125,7 +134,19 @@ describe('pidex-model-catalog', () => {
     const minimaxCnFlash = doc.providers['minimax-cn']?.models['MiniMax-M3.1-Flash']
     expect(minimaxCnFlash?.pi_api).toBe('anthropic-messages')
     expect(minimaxCnFlash?.base_url).toBe('https://api.minimaxi.com/anthropic')
-    expect(minimaxCnFlash?.limit?.context).toBe(1_000_000)
+    expect(minimaxCnFlash?.limit).toEqual({ context: 1_000_000, output: 524_288 })
+    expect(minimaxCnFlash?.modalities?.input).toEqual(['text', 'image', 'video'])
+    expect(minimaxCnFlash?.interleaved).toEqual({ field: 'reasoning_content' })
+    expect(minimaxCnFlash?.compat).toEqual({ forceAdaptiveThinking: true })
+    expect(minimaxCnFlash?.thinking_level_map).toEqual({
+      off: null,
+      minimal: null,
+      low: 'low',
+      medium: 'medium',
+      high: 'high',
+      xhigh: 'xhigh',
+      max: 'max',
+    })
     expect(minimaxCnFlash?.pricing?.currency).toBe('CNY')
     expect(minimaxCnFlash?.pricing?.idle.input).toBe(1)
     expect(minimaxCnFlash?.reasoning_options).toEqual([
@@ -136,12 +157,101 @@ describe('pidex-model-catalog', () => {
     expect(minimaxGlobalFlash?.pricing?.currency).toBe('USD')
     expect(minimaxGlobalFlash?.pricing?.idle.input).toBe(0.15)
 
+    const moonshotCn = doc.providers['moonshotai-cn']
+    expect(moonshotCn?.marketVisible).toBe(true)
+    expect(moonshotCn?.protocolEndpoints).toEqual({
+      'openai-completions': 'https://api.moonshot.cn/v1',
+      'openai-responses': 'https://api.moonshot.cn/v1',
+      'anthropic-messages': 'https://api.moonshot.cn/anthropic',
+    })
+    expect(moonshotCn?.models['kimi-k3.1-pro']?.pricing?.currency).toBe('CNY')
+    expect(moonshotCn?.models['kimi-k3.1-pro']?.pricing?.busy).toEqual({
+      input: 13,
+      output: 68,
+      cacheRead: 1.3,
+      cacheWrite: 13,
+      cacheWriteByTtl: { '5m': 13, '1h': 26 },
+    })
+    expect(moonshotCn?.models['kimi-k3.1-pro']?.modalities?.input).toContain('video')
+    expect(moonshotCn?.models['kimi-k3.1-pro']?.reasoning_options).toEqual([
+      { type: 'effort', values: ['low', 'high', 'max'], default: 'max' },
+    ])
+    expect(moonshotCn?.models['kimi-k3.1-pro-highspeed']?.pricing?.busy).toEqual({
+      input: 26,
+      output: 136,
+      cacheRead: 1.3,
+      cacheWrite: 26,
+      cacheWriteByTtl: { '5m': 26, '1h': 52 },
+    })
+    expect(moonshotCn?.models['kimi-k3']?.pricing?.busy).toEqual({
+      input: 20,
+      output: 100,
+      cacheRead: 2,
+      cacheWrite: 20,
+      cacheWriteByTtl: { '5m': 20, '1h': 40 },
+    })
+    expect(moonshotCn?.models['kimi-k2.7-code']?.pricing?.busy).toEqual({
+      input: 6.5,
+      output: 27,
+      cacheRead: 1.3,
+      cacheWrite: 0,
+    })
+    expect(moonshotCn?.models['kimi-k2.6']?.pricing?.busy).toEqual({
+      input: 6.5,
+      output: 27,
+      cacheRead: 1.1,
+      cacheWrite: 0,
+    })
+
+    const moonshotGlobal = doc.providers.moonshotai
+    expect(moonshotGlobal?.marketVisible).toBe(true)
+    expect(moonshotGlobal?.protocolEndpoints).toEqual({
+      'openai-completions': 'https://api.moonshot.ai/v1',
+      'openai-responses': 'https://api.moonshot.ai/v1',
+      'anthropic-messages': 'https://api.moonshot.ai/anthropic',
+    })
+    expect(moonshotGlobal?.models['kimi-k3.1-pro']?.pricing?.currency).toBe('USD')
+    expect(moonshotGlobal?.models['kimi-k3.1-pro']?.pricing?.busy).toEqual({
+      input: 2,
+      output: 10,
+      cacheRead: 0.2,
+      cacheWrite: 2,
+      cacheWriteByTtl: { '5m': 2, '1h': 4 },
+    })
+    expect(moonshotGlobal?.models['kimi-k3.1-pro-highspeed']?.pricing?.busy).toEqual({
+      input: 4,
+      output: 20,
+      cacheRead: 0.2,
+      cacheWrite: 4,
+      cacheWriteByTtl: { '5m': 4, '1h': 8 },
+    })
+    expect(moonshotGlobal?.models['kimi-k3']?.pricing?.busy).toEqual({
+      input: 3,
+      output: 15,
+      cacheRead: 0.3,
+      cacheWrite: 3,
+      cacheWriteByTtl: { '5m': 3, '1h': 6 },
+    })
+    expect(moonshotGlobal?.models['kimi-k2.7-code']?.pricing?.busy).toEqual({
+      input: 0.95,
+      output: 4,
+      cacheRead: 0.19,
+      cacheWrite: 0,
+    })
+    expect(moonshotGlobal?.models['kimi-k2.6']?.pricing?.busy).toEqual({
+      input: 0.95,
+      output: 4,
+      cacheRead: 0.16,
+      cacheWrite: 0,
+    })
+
     const qianwenCn = doc.providers['qianwen-cn']
-    expect(qianwenCn?.marketVisible).toBe(false)
+    expect(qianwenCn?.marketVisible).toBe(true)
     expect(qianwenCn?.api).toBe('https://maas.qianwenaiapi.com/compatible-mode/v1')
     expect(qianwenCn?.endpoints).toEqual(['https://maas.qianwenaiapi.com/apps/anthropic'])
     expect(qianwenCn?.protocolEndpoints).toEqual({
       'openai-completions': 'https://maas.qianwenaiapi.com/compatible-mode/v1',
+      'openai-responses': 'https://maas.qianwenaiapi.com/compatible-mode/v1',
       'anthropic-messages': 'https://maas.qianwenaiapi.com/apps/anthropic',
     })
     expect(qianwenCn?.models['deepseek-v4.1-flash']?.pricing).toMatchObject({
@@ -171,7 +281,7 @@ describe('pidex-model-catalog', () => {
     expect(qianwenCn?.models['qwen3.7-text-rerank']?.type).toBe('rerank')
 
     const tokenPlanCn = doc.providers['qwen-token-plan-cn']
-    expect(tokenPlanCn?.marketVisible).toBe(false)
+    expect(tokenPlanCn?.marketVisible).toBe(true)
     expect(tokenPlanCn?.api).toBe('https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1')
     expect(tokenPlanCn?.endpoints).toEqual([
       'https://token-plan.maas.qianwenaiapi.com/apps/anthropic',
@@ -179,6 +289,7 @@ describe('pidex-model-catalog', () => {
     ])
     expect(tokenPlanCn?.protocolEndpoints).toEqual({
       'openai-completions': 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
+      'openai-responses': 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
       'anthropic-messages': 'https://token-plan.maas.qianwenaiapi.com/apps/anthropic',
     })
     expect(doc.providers.deepseek?.protocolEndpoints).toEqual({
@@ -472,8 +583,166 @@ test('v2 isolates routes, preserves retired reference prices, and pairs speed in
   const gateway = catalog.providers['qianwen-cn']!
   const kimiId = 'kimi/kimi-k3.1-pro'
   const fastId = 'kimi/kimi-k3.1-pro-highspeed'
+  expect(gateway.marketVisible).toBe(true)
+  expect(gateway.defaultProtocol).toBe('openai-completions')
+  expect(gateway.models['qwen4-max']?.supportedProtocols).toEqual([
+    'openai-completions',
+    'openai-responses',
+    'anthropic-messages',
+  ])
+  expect(gateway.models[kimiId]?.supportedProtocols).toEqual([
+    'openai-completions',
+    'openai-responses',
+    'anthropic-messages',
+  ])
+  expect(gateway.models['qwen3.7-text-embedding-flash']?.supportedProtocols).toBeUndefined()
+  expect(tokenPlan.marketVisible).toBe(true)
+  expect(tokenPlan.models.auto?.supportedProtocols).toEqual([
+    'openai-completions',
+    'openai-responses',
+    'anthropic-messages',
+  ])
+  expect(tokenPlan.models['decision-model-preview']?.supportedProtocols).toEqual(['openai-completions'])
+  expect(tokenPlan.models['qwen4-max']?.supportedProtocols).toEqual([
+    'openai-completions',
+    'openai-responses',
+    'anthropic-messages',
+  ])
   expect(gateway.models[kimiId]?.speedTiers?.fast?.requestModelId).toBe(fastId)
   expect(gateway.models[fastId]).toBeUndefined()
   expect(knowledge.models['moonshotai/kimi-k3.1-pro']?.providers['qianwen-cn']?.speedTiers?.fast?.pricing.busy?.input).toBe(26)
   expect(legacy.providers['qianwen-cn']?.models[fastId]).toBeDefined()
+
+  for (const [providerId, modelIds, protocols] of [
+    ['deepseek', ['deepseek-flash', 'deepseek-v4-pro'], ['openai-completions', 'openai-responses', 'anthropic-messages']],
+    ['minimax', ['MiniMax-M3.1-Flash', 'MiniMax-M3'], ['anthropic-messages', 'openai-completions']],
+    ['minimax-cn', ['MiniMax-M3.1-Flash', 'MiniMax-M3'], ['anthropic-messages', 'openai-completions']],
+  ] as const) {
+    const provider = catalog.providers[providerId]!
+    expect(provider.marketVisible).toBe(true)
+    for (const id of modelIds) {
+      expect(provider.models[id]?.supportedProtocols).toEqual([...protocols])
+    }
+  }
+  expect(catalog.providers['minimax-cn']?.endpointAliases).toContain('https://api.minimaxi.com/v1')
+  expect(catalog.providers['minimax-cn']?.models['MiniMax-M3.1-Flash']?.thinkingLevelMap).toEqual({
+    off: null,
+    minimal: null,
+    low: 'low',
+    medium: 'medium',
+    high: 'high',
+    xhigh: 'xhigh',
+    max: 'max',
+  })
+  expect(knowledge.models['minimax/minimax-m3']?.providers['minimax-cn']?.overrides?.modalities).toBeUndefined()
+  expect(knowledge.models['minimax/minimax-m3']?.providers['minimax-cn']?.overrides?.limit).toBeUndefined()
+  expect(knowledge.models['minimax/minimax-m3.1-flash']?.providers['minimax-cn']?.overrides?.limit).toBeUndefined()
+  expect(knowledge.models['deepseek/deepseek-v4.1-flash-1017']?.providers.deepseek?.reasoningCost).toBeUndefined()
+  expect(knowledge.models['deepseek/deepseek-v4-pro-0813']?.providers.deepseek?.reasoningCost).toBeUndefined()
+
+  for (const pid of ['moonshotai-cn', 'moonshotai'] as const) {
+    const provider = catalog.providers[pid]!
+    expect(provider.marketVisible).toBe(true)
+    expect(provider.defaultProtocol).toBe('openai-completions')
+    expect(provider.models['kimi-k3.1-pro']?.supportedProtocols).toEqual([
+      'openai-completions',
+      'openai-responses',
+      'anthropic-messages',
+    ])
+    expect(provider.models['kimi-k3']?.supportedProtocols).toEqual([
+      'openai-completions',
+      'openai-responses',
+      'anthropic-messages',
+    ])
+    expect(provider.models['kimi-k2.7-code']?.supportedProtocols).toEqual(['openai-completions'])
+    expect(provider.models['kimi-k2.6']?.supportedProtocols).toEqual(['openai-completions'])
+    expect(provider.models['kimi-k3.1-pro']?.speedTiers?.fast?.requestModelId).toBe(
+      'kimi-k3.1-pro-highspeed',
+    )
+    expect(provider.models['kimi-k3.1-pro-highspeed']).toBeUndefined()
+    expect(provider.models['kimi-k2.7-code']?.speedTiers?.fast?.requestModelId).toBe(
+      'kimi-k2.7-code-highspeed',
+    )
+    expect(provider.models['kimi-k2.7-code-highspeed']).toBeUndefined()
+  }
+  const k31Pro = knowledge.models['moonshotai/kimi-k3.1-pro']!
+  expect(k31Pro.referencePricing?.sourceProviderId).toBe('moonshotai')
+  expect(k31Pro.referencePricing?.pricing.busy?.cacheWriteByTtl).toEqual({ '5m': 2, '1h': 4 })
+  expect(k31Pro.providers['moonshotai-cn']?.speedTiers?.fast?.pricing.busy?.cacheWriteByTtl).toEqual(
+    { '5m': 26, '1h': 52 },
+  )
+  expect(k31Pro.providers.moonshotai?.speedTiers?.fast?.pricing.busy?.cacheWriteByTtl).toEqual({
+    '5m': 4,
+    '1h': 8,
+  })
+})
+
+test('v2 rejects invalid market protocol declarations after verifying artifact checksums', async () => {
+  const legacy = await buildCatalog()
+  const directory = await mkdtemp(join(tmpdir(), 'pidex-catalog-test-'))
+  const providersPath = join(directory, 'providers.json')
+  const modelsPath = join(directory, 'models.json')
+  const manifestPath = join(directory, 'manifest.json')
+  try {
+    await writeCatalogV2(directory, legacy, undefined)
+    await validateCatalogV2(directory)
+    const providers = ProvidersV2.parse(await Bun.file(providersPath).json())
+    const manifest = ManifestV2.parse(await Bun.file(manifestPath).json())
+    const binding = providers.providers.deepseek!.models['deepseek-flash']!
+    const cases: [V2Api[] | undefined, string][] = [
+      [['openai-responses', 'openai-completions'], 'must start with the effective default protocol'],
+      [['openai-completions', 'openai-completions'], 'contains duplicate protocols'],
+      [['openai-completions', 'google-generative-ai'], 'references unconfigured protocol'],
+      [[], 'must not be empty'],
+      [undefined, 'market chat models must declare supportedProtocols'],
+    ]
+    for (const [protocols, error] of cases) {
+      binding.supportedProtocols = protocols
+      const json = JSON.stringify(providers)
+      manifest.files.providers.bytes = Buffer.byteLength(json)
+      manifest.files.providers.sha256 = createHash('sha256').update(json).digest('hex')
+      await Bun.write(providersPath, json)
+      await Bun.write(manifestPath, JSON.stringify(manifest))
+      await expect(validateCatalogV2(directory)).rejects.toThrow(error)
+    }
+  } finally {
+    await Promise.allSettled([providersPath, modelsPath, manifestPath].map((path) => unlink(path)))
+    await rmdir(directory)
+  }
+})
+
+test('v2 build rejects orphan, speed-tier, and unknown-provider supportedProtocols rules', async () => {
+  const legacy = await buildCatalog()
+
+  const missingModel = structuredClone(legacy)
+  delete missingModel.providers.deepseek!.models['deepseek-flash']
+  expect(() => buildCatalogV2(missingModel)).toThrow(
+    'supportedProtocols references unknown model: deepseek/deepseek-flash',
+  )
+
+  const withSpeedTierKey = {
+    ...providerRules,
+    moonshotai: {
+      ...providerRules.moonshotai,
+      supportedProtocols: {
+        ...providerRules.moonshotai?.supportedProtocols,
+        'kimi-k3.1-pro-highspeed': ['openai-completions'] as const,
+      },
+    },
+  }
+  expect(() => buildCatalogV2(legacy, undefined, withSpeedTierKey)).toThrow(
+    'supportedProtocols must not target speed-tier model: moonshotai/kimi-k3.1-pro-highspeed',
+  )
+
+  const withUnknownProvider = {
+    ...providerRules,
+    'nonexistent-provider': {
+      supportedProtocols: {
+        'ghost-model': ['openai-completions'] as const,
+      },
+    },
+  }
+  expect(() => buildCatalogV2(legacy, undefined, withUnknownProvider)).toThrow(
+    'supportedProtocols references unknown provider: nonexistent-provider',
+  )
 })
