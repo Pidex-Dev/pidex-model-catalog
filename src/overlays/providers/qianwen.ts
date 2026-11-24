@@ -36,6 +36,11 @@ export const qianwenCnOverlay: ProviderOverlay = {
   models: {
     'qwen4-max': {
       canonical_model_id: 'alibaba/qwen4-max',
+      reasoning: true,
+      reasoning_options: [
+        { type: 'toggle' },
+        { type: 'effort', values: ['low', 'high', 'xhigh'], default: 'high' },
+      ],
       pricing: withFlatPricing(FLAT_CNY, {
         input: 10,
         output: 30,
@@ -310,6 +315,11 @@ export const qwenTokenPlanCnOverlay: ProviderOverlay = {
     },
     'qwen4-max': {
       canonical_model_id: 'alibaba/qwen4-max',
+      reasoning: true,
+      reasoning_options: [
+        { type: 'toggle' },
+        { type: 'effort', values: ['low', 'high', 'xhigh'], default: 'high' },
+      ],
       cost: ZERO_CASH_COST,
     },
     'qwen4-max-preview': {
