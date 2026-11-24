@@ -1,5 +1,5 @@
-import type { ProviderOverlay } from "../../schema/catalog";
-import { DEEPSEEK_OFF_PEAK_CN } from "../../schedules/templates";
+import type { ProviderOverlay } from '../../schema/catalog'
+import { DEEPSEEK_OFF_PEAK_CN } from '../../schedules/templates'
 
 /**
  * DeepSeek official pricing & thinking modes.
@@ -8,22 +8,22 @@ import { DEEPSEEK_OFF_PEAK_CN } from "../../schedules/templates";
  * - https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
  */
 export const deepseekOverlay: ProviderOverlay = {
-  providerId: "deepseek",
+  providerId: 'deepseek',
   providerPricingRule: {
-    kind: "off-peak-factor",
+    kind: 'off-peak-factor',
     schedule: DEEPSEEK_OFF_PEAK_CN,
     idleFactor: 0.5,
   },
   protocolEndpoints: {
-    "openai-completions": "https://api.deepseek.com",
-    "openai-responses": "https://api.deepseek.com",
-    "anthropic-messages": "https://api.deepseek.com/anthropic",
+    'openai-completions': 'https://api.deepseek.com',
+    'openai-responses': 'https://api.deepseek.com',
+    'anthropic-messages': 'https://api.deepseek.com/anthropic',
   },
   models: {
-    "deepseek-flash": {
+    'deepseek-flash': {
       reasoning_options: [
-        { type: "toggle" },
-        { type: "effort", values: ["low", "high", "max"], default: "high" },
+        { type: 'toggle' },
+        { type: 'effort', values: ['low', 'high', 'max'], default: 'high' },
       ],
       busyPricing: {
         input: 2,
@@ -32,10 +32,10 @@ export const deepseekOverlay: ProviderOverlay = {
         cacheWrite: 0,
       },
     },
-    "deepseek-v4-pro": {
+    'deepseek-v4-pro': {
       reasoning_options: [
-        { type: "toggle" },
-        { type: "effort", values: ["high", "max"], default: "high" },
+        { type: 'toggle' },
+        { type: 'effort', values: ['high', 'max'], default: 'high' },
       ],
       busyPricing: {
         input: 9,
@@ -45,4 +45,4 @@ export const deepseekOverlay: ProviderOverlay = {
       },
     },
   },
-};
+}

@@ -28,6 +28,7 @@ export const qianwenCnOverlay: ProviderOverlay = {
   api: 'https://maas.qianwenaiapi.com/compatible-mode/v1',
   protocolEndpoints: {
     'openai-completions': 'https://maas.qianwenaiapi.com/compatible-mode/v1',
+    'openai-responses': 'https://maas.qianwenaiapi.com/compatible-mode/v1',
     'anthropic-messages': 'https://maas.qianwenaiapi.com/apps/anthropic',
   },
   env: ['DASHSCOPE_API_KEY'],
@@ -298,6 +299,7 @@ export const qwenTokenPlanCnOverlay: ProviderOverlay = {
   api: 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
   protocolEndpoints: {
     'openai-completions': 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
+    'openai-responses': 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
     'anthropic-messages': 'https://token-plan.maas.qianwenaiapi.com/apps/anthropic',
   },
   endpoints: ['https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1'],
