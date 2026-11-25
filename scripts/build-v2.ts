@@ -21,6 +21,7 @@ import {
   FLAT_CNY,
   FLAT_USD,
   QIANWEN_OFF_PEAK_CN,
+  QIANWEN_OFF_PEAK_USD,
 } from '../src/schedules/templates'
 
 const schedules = {
@@ -28,6 +29,7 @@ const schedules = {
   'flat-usd': FLAT_USD,
   'deepseek-off-peak-cn': DEEPSEEK_OFF_PEAK_CN,
   'qianwen-off-peak-cn': QIANWEN_OFF_PEAK_CN,
+  'qianwen-off-peak-usd': QIANWEN_OFF_PEAK_USD,
 }
 
 const same = (left: unknown, right: unknown): boolean =>
@@ -310,10 +312,16 @@ export function buildCatalogV2(
           promotions: [...rule.promotions[providerModelId]],
         }
       }
-      const fastPricing = fastId ? compactPricing(raw.models[fastId] ?? {}) : undefined
+      const fastPricing = fastId
+        ? rule?.billingMode
+          ? { billingMode: rule.billingMode, scheduleId: rule.scheduleId ?? 'flat-usd' }
+          : compactPricing(raw.models[fastId] ?? {})
+        : undefined
       if (fastId && !fastPricing) throw new Error('Missing speed tier price: ' + id + '/' + fastId)
       const ultrafastPricing = ultrafastId
-        ? compactPricing(raw.models[ultrafastId] ?? {})
+        ? rule?.billingMode
+          ? { billingMode: rule.billingMode, scheduleId: rule.scheduleId ?? 'flat-usd' }
+          : compactPricing(raw.models[ultrafastId] ?? {})
         : undefined
       if (ultrafastId && !ultrafastPricing)
         throw new Error('Missing speed tier price: ' + id + '/' + ultrafastId)
@@ -448,6 +456,13 @@ export async function writeCatalogV2(
       for (const [modelId, binding] of Object.entries(provider.models)) {
         const previousRef = previousBindings[modelId]?.modelRef
         if (previousRef && previousRef !== binding.modelRef) replacedIds.add(previousRef)
+        for (const tier of Object.values(binding.speedTiers ?? {})) {
+          if (!tier?.requestModelId) continue
+          const foldedRef = previousBindings[tier.requestModelId]?.modelRef
+          if (foldedRef && foldedRef !== binding.modelRef) replacedIds.add(foldedRef)
+          const syntheticRef = `${id}/${tier.requestModelId}`.toLowerCase()
+          if (syntheticRef !== binding.modelRef) replacedIds.add(syntheticRef)
+        }
       }
     }
   }
