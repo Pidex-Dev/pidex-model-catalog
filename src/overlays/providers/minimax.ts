@@ -44,15 +44,15 @@ const MINIMAX_M31_FLASH_THINKING_LEVEL_MAP = {
  */
 export const minimaxCnOverlay: ProviderOverlay = {
   providerId: 'minimax-cn',
-  endpoints: ['https://api.minimaxi.com/v1'],
+  endpoints: ['https://api.minimaxi.com/v1', 'https://api.minimaxi.com/anthropic'],
   protocolEndpoints: {
-    'anthropic-messages': 'https://api.minimaxi.com/anthropic',
+    'anthropic-messages': 'https://api.minimax.cn/anthropic',
     'openai-completions': 'https://api.minimax.cn/v1',
   },
   models: {
     'MiniMax-M3.1-Flash': {
       pi_api: 'anthropic-messages',
-      base_url: 'https://api.minimaxi.com/anthropic',
+      base_url: 'https://api.minimax.cn/anthropic',
       compat: { ...MINIMAX_M31_FLASH_COMPAT },
       thinking_level_map: { ...MINIMAX_M31_FLASH_THINKING_LEVEL_MAP },
       limit: MINIMAX_M3_LIMIT,
@@ -70,6 +70,7 @@ export const minimaxCnOverlay: ProviderOverlay = {
       }),
     },
     'MiniMax-M3': {
+      base_url: 'https://api.minimax.cn/anthropic',
       limit: MINIMAX_M3_LIMIT,
       modalities: MINIMAX_MULTIMODAL_MODALITIES,
       reasoning: true,

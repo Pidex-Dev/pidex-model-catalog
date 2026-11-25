@@ -33,9 +33,10 @@ export const deepseekOverlay: ProviderOverlay = {
       },
     },
     'deepseek-v4-pro': {
+      thinking_level_map: { high: 'high', low: 'low', max: 'max', medium: null, minimal: null },
       reasoning_options: [
         { type: 'toggle' },
-        { type: 'effort', values: ['high', 'max'], default: 'high' },
+        { type: 'effort', values: ['low', 'high', 'max'], default: 'high' },
       ],
       busyPricing: {
         input: 9,
