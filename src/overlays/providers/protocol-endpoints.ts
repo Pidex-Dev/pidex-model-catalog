@@ -35,10 +35,4 @@ export const PROTOCOL_ENDPOINT_OVERLAYS: readonly ProviderOverlay[] = [
       'openai-responses': 'https://openrouter.ai/api/v1',
     },
   },
-  {
-    providerId: 'zai',
-    protocolEndpoints: {
-      'anthropic-messages': 'https://api.z.ai/api/anthropic',
-    },
-  },
 ]

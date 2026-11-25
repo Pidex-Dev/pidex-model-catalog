@@ -1,4 +1,4 @@
-import type { ProviderOverlay } from '../../schema/catalog'
+import type { ModelFactsPatch, ProviderOverlay } from '../../schema/catalog'
 import { withFlatPricing, withHalfPriceIdle } from '../../schedules/helpers'
 import { FLAT_CNY, QIANWEN_OFF_PEAK_CN } from '../../schedules/templates'
 
@@ -8,6 +8,15 @@ const ZERO_CASH_COST = {
   cache_read: 0,
   cache_write: 0,
 } as const
+
+const TOKEN_PLAN_CN_OPENAI_URL = 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1'
+const TOKEN_PLAN_CN_ANTHROPIC_URL = 'https://token-plan.maas.qianwenaiapi.com/apps/anthropic'
+
+const tokenPlanCnModel = (patch: ModelFactsPatch = {}): ModelFactsPatch => ({
+  ...patch,
+  base_url: TOKEN_PLAN_CN_OPENAI_URL,
+  cost: ZERO_CASH_COST,
+})
 
 /**
  * Qwen AI Platform (千问AI平台) pay-as-you-go CNY pricing & model specs.
@@ -316,84 +325,74 @@ export const qianwenCnOverlay: ProviderOverlay = {
 export const qwenTokenPlanCnOverlay: ProviderOverlay = {
   providerId: 'qwen-token-plan-cn',
   name: 'Qwen AI Token Plan (China)',
-  api: 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
+  api: TOKEN_PLAN_CN_OPENAI_URL,
   protocolEndpoints: {
-    'openai-completions': 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
-    'openai-responses': 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
-    'anthropic-messages': 'https://token-plan.maas.qianwenaiapi.com/apps/anthropic',
+    'openai-completions': TOKEN_PLAN_CN_OPENAI_URL,
+    'openai-responses': TOKEN_PLAN_CN_OPENAI_URL,
+    'anthropic-messages': TOKEN_PLAN_CN_ANTHROPIC_URL,
   },
   endpoints: ['https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1'],
   models: {
-    'auto': {
+    'auto': tokenPlanCnModel({
       name: 'Auto',
-      cost: ZERO_CASH_COST,
-    },
-    'qwen4-max': {
+    }),
+    'qwen4-max': tokenPlanCnModel({
       canonical_model_id: 'alibaba/qwen4-max',
       reasoning: true,
       reasoning_options: [
         { type: 'toggle' },
         { type: 'effort', values: ['low', 'high', 'xhigh'], default: 'high' },
       ],
-      cost: ZERO_CASH_COST,
-    },
-    'qwen4-max-preview': {
+    }),
+    'qwen4-max-preview': tokenPlanCnModel({
       canonical_model_id: 'alibaba/qwen4-max',
       name: 'Qwen4 Max Preview',
       aliases: ['qwen4.0-max-preview'],
-      cost: ZERO_CASH_COST,
-    },
-    'qwen3.8-max': {
+    }),
+    'qwen3.8-max': tokenPlanCnModel({
       canonical_model_id: 'alibaba/qwen3.8-max',
-      cost: ZERO_CASH_COST,
-    },
-    'qwen3.8-flash': {
+    }),
+    'qwen3.8-flash': tokenPlanCnModel({
       canonical_model_id: 'alibaba/qwen3.8-flash',
-      cost: ZERO_CASH_COST,
-    },
-    'qwen3.7-plus': {
+    }),
+    'qwen3.7-plus': tokenPlanCnModel({
       canonical_model_id: 'alibaba/qwen3.7-plus',
-      cost: ZERO_CASH_COST,
-    },
-    'qwen3.7-max': {
+    }),
+    'qwen3.7-max': tokenPlanCnModel({
       canonical_model_id: 'alibaba/qwen3.7-max',
-      cost: ZERO_CASH_COST,
-    },
-    'qwen3.6-flash': {
+    }),
+    'qwen3.6-flash': tokenPlanCnModel({
       canonical_model_id: 'alibaba/qwen3.6-flash',
-      cost: ZERO_CASH_COST,
-    },
-    'deepseek-v4.1-flash': {
+    }),
+    'deepseek-v4.1-flash': tokenPlanCnModel({
       canonical_model_id: 'deepseek/deepseek-v4.1-flash',
-      cost: ZERO_CASH_COST,
-    },
-    'deepseek-v4.1-flash-1017': {
+    }),
+    'deepseek-v4.1-flash-1017': tokenPlanCnModel({
       canonical_model_id: 'deepseek/deepseek-v4.1-flash-1017',
-      cost: ZERO_CASH_COST,
-    },
-    'deepseek-v4-pro': {
+    }),
+    'deepseek-v4-pro': tokenPlanCnModel({
       canonical_model_id: 'deepseek/deepseek-v4-pro',
-      cost: ZERO_CASH_COST,
-    },
-    'deepseek-v4-pro-0813': {
+    }),
+    'deepseek-v4-pro-0813': tokenPlanCnModel({
       canonical_model_id: 'deepseek/deepseek-v4-pro-0813',
-      cost: ZERO_CASH_COST,
-    },
-    'deepseek-v4-flash-0731': {
+    }),
+    'deepseek-v4-flash-0731': tokenPlanCnModel({
       canonical_model_id: 'deepseek/deepseek-v4-flash-0731',
-      cost: ZERO_CASH_COST,
-    },
-    'ZHIPU/GLM-5.3': {
+    }),
+    'ZHIPU/GLM-5.3': tokenPlanCnModel({
       canonical_model_id: 'zhipuai/glm-5.3',
-      cost: ZERO_CASH_COST,
-    },
-    'ZHIPU/GLM-5.2': {
+    }),
+    'ZHIPU/GLM-5.2': tokenPlanCnModel({
       canonical_model_id: 'zhipuai/glm-5.2',
-      cost: ZERO_CASH_COST,
-    },
-    'decision-model-preview': {
+    }),
+    'glm-5.3': tokenPlanCnModel({
+      canonical_model_id: 'zhipuai/glm-5.3',
+    }),
+    'glm-5.2': tokenPlanCnModel({
+      canonical_model_id: 'zhipuai/glm-5.2',
+    }),
+    'decision-model-preview': tokenPlanCnModel({
       name: 'Decision Model Preview',
-      cost: ZERO_CASH_COST,
-    },
+    }),
   },
 }

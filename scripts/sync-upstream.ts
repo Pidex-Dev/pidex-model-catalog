@@ -49,6 +49,24 @@ const QWEN_TOKEN_PLAN_RETIRED_MODELS = new Set([
   'qwen3.6-plus',
 ])
 
+/**
+ * Xiaomi MiMo models retired on 2026-10-21 (replaced by the MiMo-V2.6 series).
+ * Filtered from Pi provider listings while preserved as deprecated entries in
+ * canonical `v2/models.json` for smartConfig matching.
+ */
+const XIAOMI_RETIRED_MODELS = new Set([
+  'mimo-v2.5',
+  'mimo-v2.5-pro',
+  'mimo-v2.5-pro-ultraspeed',
+])
+
+const XIAOMI_PROVIDERS = new Set([
+  'xiaomi',
+  'xiaomi-token-plan-cn',
+  'xiaomi-token-plan-sgp',
+  'xiaomi-token-plan-ams',
+])
+
 const MODELS_DEV_FIELDS = [
   'id',
   'name',
@@ -130,6 +148,10 @@ async function main() {
       }
       // Qwen Token Plan endpoint no longer serves models missing from the live list.
       if (providerId === 'qwen-token-plan-cn' && QWEN_TOKEN_PLAN_RETIRED_MODELS.has(modelId)) {
+        continue
+      }
+      // Xiaomi MiMo official API retired V2.5 text models in favor of V2.6.
+      if (XIAOMI_PROVIDERS.has(providerId) && XIAOMI_RETIRED_MODELS.has(modelId)) {
         continue
       }
       modelsOut[modelId] = pickFields(modelObj as Record<string, unknown>, PI_MODEL_FIELDS)

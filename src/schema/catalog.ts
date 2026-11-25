@@ -208,6 +208,9 @@ export interface ProviderOverlay {
     readonly schedule: Parameters<typeof import('../schedules/helpers').withOffPeakSchedule>[0]
     readonly idleFactor: number
   }
+  readonly excludeModels?: readonly string[]
+  /** When true, only models declared in `models` are kept (while still inheriting base metadata per model). */
+  readonly replaceModels?: boolean
   readonly models?: Readonly<Record<string, ModelFactsPatch>>
 }
 

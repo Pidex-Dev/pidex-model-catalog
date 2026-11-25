@@ -45,6 +45,28 @@ export const QIANWEN_OFF_PEAK_CN = {
   dateOverrides: [],
 } as const
 
+/**
+ * QwenCloud international daily peak/off-peak billing schedule (USD, UTC+8).
+ * Source: https://docs.qwencloud.com/developer-guides/getting-started/pricing.md
+ *
+ * Peak (busy): every day 08:00-22:00 UTC+8.
+ * Off-peak (idle): every day 22:00-08:00 UTC+8 (next day).
+ */
+export const QIANWEN_OFF_PEAK_USD = {
+  currency: 'USD',
+  timeZone: 'Asia/Shanghai',
+  defaultPeriod: 'idle',
+  rules: [
+    {
+      period: 'busy',
+      weekdays: [0, 1, 2, 3, 4, 5, 6],
+      holiday: 'any',
+      intervals: [{ start: '08:00', end: '22:00' }],
+    },
+  ],
+  dateOverrides: [],
+} as const
+
 /** Flat CNY pricing schedule without peak/off-peak time windows. */
 export const FLAT_CNY = {
   currency: 'CNY',

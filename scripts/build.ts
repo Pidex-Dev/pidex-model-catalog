@@ -351,8 +351,16 @@ export async function buildCatalog(): Promise<CatalogDocument> {
   // Layer 3: Authoritative TypeScript provider overlays.
   for (const overlay of PROVIDER_OVERLAYS) {
     const existing = providers[overlay.providerId]
+    const existingModels = existing?.models ?? {}
     const devModels = modelsDevRaw.providers?.[overlay.providerId]?.models ?? {}
-    const modelsOut: Record<string, CatalogModelFacts> = existing ? { ...existing.models } : {}
+    const excluded = new Set(overlay.excludeModels ?? [])
+    const modelsOut: Record<string, CatalogModelFacts> = overlay.replaceModels
+      ? {}
+      : existing
+        ? Object.fromEntries(
+            Object.entries(existingModels).filter(([modelId]) => !excluded.has(modelId)),
+          )
+        : {}
     for (const [modelId, definition] of Object.entries(overlay.models ?? {})) {
       const { busyPricing, ...patch } = definition
       const rule = overlay.providerPricingRule
@@ -363,7 +371,9 @@ export async function buildCatalog(): Promise<CatalogDocument> {
         })
       }
       const devSeed = devModels[modelId] ?? devModels[modelId.toLowerCase()]
-      const current = modelsOut[modelId] ?? (devSeed ? sanitizeFacts(devSeed) : undefined)
+      const current =
+        (excluded.has(modelId) ? undefined : existingModels[modelId]) ??
+        (devSeed ? sanitizeFacts(devSeed) : undefined)
       modelsOut[modelId] = current ? deepMergeFacts(current, patch) : sanitizeFacts(patch)
     }
     const mergedProtocolEndpoints: ProtocolEndpoints = {
