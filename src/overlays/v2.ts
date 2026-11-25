@@ -1,6 +1,6 @@
 import { withFlatPricing } from '../schedules/helpers'
 import { FLAT_USD } from '../schedules/templates'
-import type { PricingPromotion, V2Api } from '../schema/catalog-v2'
+import type { ModelsDocumentV2, PricingPromotion, V2Api } from '../schema/catalog-v2'
 
 const OPENAI_FIRST_PROTOCOLS = ['openai-completions', 'openai-responses', 'anthropic-messages'] as const
 const MINIMAX_PROTOCOLS = ['anthropic-messages', 'openai-completions'] as const
@@ -28,6 +28,33 @@ const MOONSHOT_V2_RULE = {
 export const canonicalModelNames: Readonly<Record<string, string>> = {
   'glm-5.3-flashx': 'zhipuai/glm-5.3-flashx',
 }
+
+export const catalogOptionRules = [
+  {
+    modelMatch: 'kimi-k3\\.1-pro-prime',
+    apiTypeMatch: 'openai-responses',
+    baseUrlMatch: 'https://maas\\.qianwenaiapi\\.com/compatible-mode/v1/?',
+    optionSpecs: {
+      reasoningLevel: {
+        values: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'],
+        map: '{"reasoning": {"effort": reasoningLevel}}',
+      },
+    },
+  },
+  {
+    modelMatch: 'kimi-k3\\.1-pro-prime',
+    apiTypeMatch: 'anthropic-messages',
+    baseUrlMatch: 'https://maas\\.qianwenaiapi\\.com/apps/anthropic/?',
+    optionSpecs: {
+      reasoningLevel: {
+        values: ['disabled', 'low', 'medium', 'high', 'xhigh', 'max'],
+        map: `reasoningLevel == "disabled"
+          ? {"thinking": {"type": "disabled"}}
+          : {"output_config": {"effort": reasoningLevel}}`,
+      },
+    },
+  },
+] satisfies NonNullable<ModelsDocumentV2['optionRules']>
 
 export const providerRules: Readonly<
   Record<
@@ -80,6 +107,7 @@ export const providerRules: Readonly<
       'deepseek-v4.1-flash-1017': OPENAI_FIRST_PROTOCOLS,
       'deepseek-v4-pro-0813': OPENAI_FIRST_PROTOCOLS,
       'kimi/kimi-k3.1-pro': OPENAI_FIRST_PROTOCOLS,
+      'kimi-k3.1-pro-prime': ['openai-responses', 'anthropic-messages'],
     },
     promotions: {
       'qwen3.7-plus': [

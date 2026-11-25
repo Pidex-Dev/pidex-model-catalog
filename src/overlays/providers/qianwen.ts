@@ -36,6 +36,11 @@ export const qianwenCnOverlay: ProviderOverlay = {
   models: {
     'qwen4-max': {
       canonical_model_id: 'alibaba/qwen4-max',
+      reasoning: true,
+      reasoning_options: [
+        { type: 'toggle' },
+        { type: 'effort', values: ['low', 'high', 'xhigh'], default: 'high' },
+      ],
       pricing: withFlatPricing(FLAT_CNY, {
         input: 10,
         output: 30,
@@ -240,6 +245,21 @@ export const qianwenCnOverlay: ProviderOverlay = {
         cacheWrite: null,
       }),
     },
+    'kimi-k3.1-pro-prime': {
+      canonical_model_id: 'moonshotai/kimi-k3.1-pro-prime',
+      name: 'Kimi K3.1 Pro Prime',
+      pi_api: 'openai-responses',
+      limit: { context: 1_048_576, output: 1_048_576 },
+      modalities: { input: ['text', 'image'], output: ['text'] },
+      reasoning: true,
+      option_specs: { maxOutputTokens: { max: 1_048_576 } },
+      pricing: withFlatPricing(FLAT_CNY, {
+        input: 26,
+        output: 136,
+        cacheRead: null,
+        cacheWrite: null,
+      }),
+    },
     'qwen3.7-text-embedding-flash': {
       name: 'Qwen3.7 Text Embedding Flash',
       type: 'embedding',
@@ -310,6 +330,11 @@ export const qwenTokenPlanCnOverlay: ProviderOverlay = {
     },
     'qwen4-max': {
       canonical_model_id: 'alibaba/qwen4-max',
+      reasoning: true,
+      reasoning_options: [
+        { type: 'toggle' },
+        { type: 'effort', values: ['low', 'high', 'xhigh'], default: 'high' },
+      ],
       cost: ZERO_CASH_COST,
     },
     'qwen4-max-preview': {
