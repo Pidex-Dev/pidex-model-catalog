@@ -14,7 +14,12 @@ import {
   type ProviderModelBinding,
   type V2Api,
 } from '../src/schema/catalog-v2'
-import { historicalReference, providerRules, canonicalModelNames } from '../src/overlays/v2'
+import {
+  canonicalModelNames,
+  catalogOptionRules,
+  historicalReference,
+  providerRules,
+} from '../src/overlays/v2'
 import { ZCODE_MODEL_OPTION_RULES } from '../src/overlays/zcode-model-options'
 import {
   DEEPSEEK_OFF_PEAK_CN,
@@ -404,7 +409,7 @@ export function buildCatalogV2(
       ...header,
       models,
       pricingSchedules: JSON.parse(JSON.stringify(schedules)),
-      optionRules: JSON.parse(JSON.stringify(ZCODE_MODEL_OPTION_RULES)),
+      optionRules: JSON.parse(JSON.stringify([...ZCODE_MODEL_OPTION_RULES, ...catalogOptionRules])),
     },
   } satisfies { providers: ProvidersDocumentV2; models: ModelsDocumentV2 }
 }
