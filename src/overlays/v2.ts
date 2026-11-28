@@ -91,6 +91,16 @@ export const catalogOptionRules = [
     },
   },
   {
+    modelMatch: 'glm-5\\.3-flashx-legal',
+    apiTypeMatch: 'openai-completions',
+    baseUrlMatch: 'https://api\\.z\\.ai/api/paas/v4/?',
+    optionSpecs: {
+      reasoningLevel: {
+        map: '{"thinking": {"type": "enabled"}, "reasoning_effort": reasoningLevel}',
+      },
+    },
+  },
+  {
     modelMatch: 'qwen3\\.8-(?:max|flash)',
     apiTypeMatch: 'anthropic-messages',
     baseUrlMatch: 'https://maas\\.qianwenaiapi\\.com/apps/anthropic/?',
