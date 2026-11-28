@@ -61,9 +61,7 @@ export const qianwenCnOverlay: ProviderOverlay = {
       canonical_model_id: 'alibaba/qwen3.8-max',
       interleaved: { field: 'reasoning_content' },
       reasoning_options: [
-        { type: 'toggle' },
-        { type: 'effort', values: ['low', 'medium', 'xhigh'] },
-        { type: 'budget_tokens', min: 0, max: 262_144 },
+        { type: 'effort', values: ['xhigh', 'medium', 'low', 'none'], default: 'xhigh' },
       ],
       pricing: withFlatPricing(FLAT_CNY, {
         input: 12,
@@ -76,9 +74,7 @@ export const qianwenCnOverlay: ProviderOverlay = {
       canonical_model_id: 'alibaba/qwen3.8-flash',
       interleaved: { field: 'reasoning_content' },
       reasoning_options: [
-        { type: 'toggle' },
-        { type: 'effort', values: ['low', 'medium', 'xhigh'] },
-        { type: 'budget_tokens', min: 0, max: 262_144 },
+        { type: 'effort', values: ['xhigh', 'medium', 'low', 'none'], default: 'xhigh' },
       ],
       pricing: withFlatPricing(FLAT_CNY, {
         input: 0.8,
