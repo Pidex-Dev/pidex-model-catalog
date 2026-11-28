@@ -90,6 +90,16 @@ export const catalogOptionRules = [
       },
     },
   },
+  {
+    modelMatch: 'glm-5\\.3-flashx-legal',
+    apiTypeMatch: 'openai-completions',
+    baseUrlMatch: 'https://api\\.z\\.ai/api/paas/v4/?',
+    optionSpecs: {
+      reasoningLevel: {
+        map: '{"thinking": {"type": "enabled"}, "reasoning_effort": reasoningLevel}',
+      },
+    },
+  },
 ] satisfies NonNullable<ModelsDocumentV2['optionRules']>
 
 export const providerRules: Readonly<
