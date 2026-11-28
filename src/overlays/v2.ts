@@ -100,6 +100,18 @@ export const catalogOptionRules = [
       },
     },
   },
+  {
+    modelMatch: 'qwen3\\.8-(?:max|flash)',
+    apiTypeMatch: 'anthropic-messages',
+    baseUrlMatch: 'https://maas\\.qianwenaiapi\\.com/apps/anthropic/?',
+    optionSpecs: {
+      reasoningLevel: {
+        map: `reasoningLevel == "none"
+          ? {"thinking": {"type": "disabled"}}
+          : {"output_config": {"effort": reasoningLevel}}`,
+      },
+    },
+  },
 ] satisfies NonNullable<ModelsDocumentV2['optionRules']>
 
 export const providerRules: Readonly<
